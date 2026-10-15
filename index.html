@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentinelOracle — Autonomous Multi-Agent Truth Resolution</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <style>
+    :root {
+      --bg-body: #060911;
+      --bg-panel: #0b101e;
+      --bg-card: #11182b;
+      --bg-card-alt: #0e1424;
+      --bg-input: #141c30;
+      --border: #1e2942;
+      --border-glow: rgba(99, 102, 241, 0.45);
+      --text: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --muted: #8b9bb4;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-gradient: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+      --emerald: #10b981;
+      --emerald-bg: rgba(16, 185, 129, 0.12);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59, 130, 246, 0.14);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --amber: #f59e0b;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --mono: "JetBrains Mono", "Fira Code", monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.07) 0%, transparent 40%);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .dashboard-shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 1180px) {
+      .dashboard-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .col-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    /* ===================================================== */
+    /* TOP-LEFT PANEL: HERO & 4 PILLARS                      */
+    /* ===================================================== */
+    .hero-panel {
+      background:
+        radial-gradient(circle at 74% 42%, rgba(99, 102, 241, 0.28) 0%, rgba(30, 58, 138, 0.15) 35%, rgba(11, 16, 30, 0.98) 70%),
+        var(--bg-panel);
+      padding: 22px 26px 26px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-code-icon {
+      color: var(--primary-light);
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 1.2rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      font-size: 0.85rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--text);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bell-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .btn-connect-top {
+      background: var(--primary-gradient);
+      color: #fff;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+      transition: opacity 0.15s;
+    }
+
+    .btn-connect-top:hover {
+      opacity: 0.92;
+    }
+
+    .hero-body {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      align-items: center;
+      padding: 28px 0 26px;
+    }
+
+    @media (max-width: 760px) {
+      .hero-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hero-title {
+      font-size: 2.75rem;
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .hero-title .gradient-text {
+      background: linear-gradient(90deg, #60a5fa 0%, #818cf8 50%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: block;
+    }
+
+    .hero-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      margin-bottom: 22px;
+      max-width: 490px;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-white {
+      background: #ffffff;
+      color: #090d16;
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .btn-white:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: rgba(17, 24, 43, 0.75);
+      color: var(--text);
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--primary-light);
+    }
+
+    .hero-visual {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+    }
+
+    .hero-SideLabels {
+      position: absolute;
+      right: 6px;
+      bottom: 14px;
+      text-align: right;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      color: rgba(203, 213, 225, 0.75);
+      line-height: 1.8;
+      pointer-events: none;
+    }
+
+    .hero-features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 820px) {
+      .hero-features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .mini-feat-card {
+      background: rgba(17, 24, 43, 0.85);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+
+    .mini-feat-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.95rem;
+    }
+
+    .mini-feat-icon.green {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .mini-feat-icon.blue {
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .mini-feat-icon.purple {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .mini-feat-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .mini-feat-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* ===================================================== */
+    /* TOP-RIGHT PANEL: REAL CONTRACT SPECS & HOW IT WORKS   */
+    /* ===================================================== */
+    .stats-strip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 560px) {
+      .stats-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-item {
+      border-right: 1px solid var(--border);
+      padding-right: 10px;
+    }
+
+    .stat-item:last-child {
+      border-right: none;
+    }
+
+    .stat-val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-family: var(--mono);
+    }
+
+    .stat-val.emerald {
+      color: var(--emerald);
+    }
+
+    .stat-lbl {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .panel-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .panel-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    .how-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      position: relative;
+    }
+
+    @media (max-width: 720px) {
+      .how-steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .how-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px 14px 18px;
+      text-align: center;
+      position: relative;
+    }
+
+    .how-card.step-1 { border-top: 2px solid var(--emerald); }
+    .how-card.step-2 { border-top: 2px solid #8b5cf6; }
+    .how-card.step-3 { border-top: 2px solid var(--blue); }
+    .how-card.step-4 { border-top: 2px solid var(--primary); }
+
+    .step-badge-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+    }
+
+    .step-1 .step-badge-num { background: var(--emerald); }
+    .step-2 .step-badge-num { background: #8b5cf6; }
+    .step-3 .step-badge-num { background: var(--blue); }
+    .step-4 .step-badge-num { background: var(--primary); }
+
+    .how-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      margin: 6px auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+    }
+
+    .how-card h4 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .how-card p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .how-card .fn-tag {
+      display: inline-block;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 0.67rem;
+      color: var(--primary-light);
+      background: rgba(99, 102, 241, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ===================================================== */
+    /* MIDDLE-LEFT PANEL: ARCHITECTURE OVERVIEW              */
+    /* ===================================================== */
+    .panel-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .panel-link {
+      font-size: 0.8rem;
+      color: var(--primary-light);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .panel-link:hover {
+      text-decoration: underline;
+    }
+
+    .arch-diagram {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 28px 1.25fr 28px 1.15fr 28px 1.15fr;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 860px) {
+      .arch-diagram {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .arch-arrow {
+        transform: rotate(90deg);
+        justify-self: center;
+      }
+    }
+
+    .arch-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .arch-box.consensus-glow {
+      border-color: rgba(99, 102, 241, 0.5);
+      background: linear-gradient(180deg, rgba(30, 27, 75, 0.45) 0%, rgba(17, 24, 43, 0.95) 100%);
+      text-align: center;
+    }
+
+    .arch-box-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .agent-pill-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .agent-pill {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.76rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    .dot-ind {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary-light);
+    }
+
+    .dot-ind.green {
+      background: var(--emerald);
+    }
+
+    .evidence-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 0.77rem;
+      color: var(--text-secondary);
+    }
+
+    .evidence-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arch-arrow {
+      color: var(--primary-light);
+      font-family: var(--mono);
+      font-weight: 700;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+
+    .outcome-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .outcome-card {
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .outcome-card.converged {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .outcome-card.diverged {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .outcome-badge-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .converged .outcome-badge-icon {
+      background: var(--emerald);
+      color: #052e16;
+    }
+
+    .diverged .outcome-badge-icon {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .outcome-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .outcome-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    /* ===================================================== */
+    /* BOTTOM-LEFT PANEL: LIVE ON-CHAIN MISSIONS TABLE       */
+    /* ===================================================== */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table.missions-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .missions-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .missions-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(30, 41, 66, 0.6);
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+
+    .missions-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+    }
+
+    .status-pill.converged {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-pill.pending {
+      background: var(--blue-bg);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .status-pill.diverged {
+      background: var(--danger-bg);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-table-view {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      cursor: pointer;
+    }
+
+    .btn-table-view:hover {
+      border-color: var(--primary-light);
+    }
+
+    /* ===================================================== */
+    /* BOTTOM-RIGHT PANEL: COMMAND CENTER                    */
+    /* ===================================================== */
+    .network-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+    }
+
+    .tabs-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: var(--bg-card-alt);
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 640px) {
+      .tabs-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.18);
+      color: var(--text);
+      border-color: rgba(99, 102, 241, 0.45);
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.15);
+    }
+
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 760px) {
+      .cmd-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .cmd-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+
+    .cmd-box-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .param-code {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: #64748b;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary-light);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 62px;
+    }
+
+    .btn-primary-full {
+      width: 100%;
+      background: var(--primary-gradient);
+      color: #fff;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      margin-top: 4px;
+    }
+
+    .btn-primary-full:hover {
+      opacity: 0.93;
+    }
+
+    .btn-action {
+      background: var(--bg-input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-action:hover {
+      border-color: var(--primary-light);
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .btn-action.emerald {
+      background: var(--emerald-bg);
+      color: var(--emerald);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-action.danger {
+      background: var(--danger-bg);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .action-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    /* Contract Status Right Column */
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      margin-bottom: 16px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding-bottom: 9px;
+      border-bottom: 1px solid rgba(30, 41, 66, 0.65);
+    }
+
+    .status-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .status-lbl {
+      color: var(--muted);
+    }
+
+    .status-val {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-mini {
+      background: rgba(99, 102, 241, 0.16);
+      color: var(--primary-light);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .address-card {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .address-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .inspector-pre {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: #cbd5e1;
+      max-height: 190px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 10px;
+    }
+
+    /* ===================================================== */
+    /* BOTTOM-RIGHT PANEL: ON-CHAIN TRANSPARENCY             */
+    /* ===================================================== */
+    .transparency-panel {
+      background:
+        radial-gradient(circle at 88% 55%, rgba(99, 102, 241, 0.24) 0%, rgba(11, 16, 30, 0.96) 65%),
+        var(--bg-panel);
+    }
+
+    .transp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    @media (max-width: 640px) {
+      .transp-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .transp-card {
+      background: rgba(17, 24, 43, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .terminal-drawer {
+      background: #05080f;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      max-height: 125px;
+      overflow-y: auto;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+
+    .log-time { color: #64748b; margin-right: 6px; }
+    .log-ok { color: var(--emerald); }
+    .log-err { color: var(--danger); }
+    .log-info { color: var(--primary-light); }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-shell">
+
+    <!-- ========================================================= -->
+    <!-- LEFT COLUMN STACK                                         -->
+    <!-- ========================================================= -->
+    <div class="col-stack">
+
+      <!-- 1. HERO PANEL -->
+      <section id="home" class="panel hero-panel">
+        <div class="top-nav">
+          <a href="#home" class="brand">
+            <span class="brand-code-icon">&lt;/&gt;</span>
+            <span>SentinelOracle</span>
+          </a>
+          <nav class="nav-links">
+            <a href="#home" class="active">Home</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="#command-center">Command Center</a>
+          </nav>
+          <div class="nav-actions">
+            <button id="refreshTopBtn" class="bell-btn" title="Sync on-chain state">↻</button>
+            <button id="connectBtn" class="btn-connect-top">Connect Wallet</button>
+          </div>
+        </div>
+
+        <div class="hero-body">
+          <div>
+            <h1 class="hero-title">
+              Autonomous
+              <span class="gradient-text">Multi-Agent</span>
+              Truth Resolution
+            </h1>
+            <p class="hero-subtitle">
+              SentinelOracle is an intelligent oracle contract built for GenLayer (GenVM v0.3.0). It coordinates multi-agent web evidence verification and delivers deterministic LLM outcome classification with trustless native GEN escrow payouts.
+            </p>
+            <div class="hero-cta-row">
+              <a href="#command-center" class="btn-white">Launch Command Center →</a>
+              <a href="#architecture" class="btn-ghost">Learn More</a>
+            </div>
+          </div>
+
+          <!-- Glowing 3D Cube & Orbit Graphic -->
+          <div class="hero-visual">
+            <svg viewBox="0 0 340 260" width="100%" height="250" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="coreGlow" cx="50%" cy="48%" r="48%">
+                  <stop offset="0%" stop-color="#818cf8" stop-opacity="0.65" />
+                  <stop offset="45%" stop-color="#4f46e5" stop-opacity="0.22" />
+                  <stop offset="100%" stop-color="#0b101e" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="cubeTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#93c5fd" />
+                  <stop offset="100%" stop-color="#6366f1" />
+                </linearGradient>
+                <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#4f46e5" />
+                  <stop offset="100%" stop-color="#1e1b4b" />
+                </linearGradient>
+                <linearGradient id="cubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#1d4ed8" />
+                </linearGradient>
+              </defs>
+
+              <circle cx="170" cy="120" r="115" fill="url(#coreGlow)" />
+              <ellipse cx="170" cy="120" rx="145" ry="42" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-opacity="0.55" transform="rotate(-18 170 120)" />
+              <ellipse cx="170" cy="120" rx="115" ry="30" fill="none" stroke="#818cf8" stroke-width="1" stroke-dasharray="5 4" transform="rotate(-18 170 120)" />
+
+              <polygon points="170,42 232,78 170,114 108,78" fill="url(#cubeTop)" fill-opacity="0.88" stroke="#bfdbfe" stroke-width="1.2" />
+              <polygon points="108,78 170,114 170,184 108,148" fill="url(#cubeLeft)" fill-opacity="0.92" stroke="#818cf8" stroke-width="1.2" />
+              <polygon points="170,114 232,78 232,148 170,184" fill="url(#cubeRight)" fill-opacity="0.85" stroke="#93c5fd" stroke-width="1.2" />
+
+              <circle cx="170" cy="148" r="7" fill="#ffffff" />
+              <circle cx="170" cy="148" r="18" fill="#60a5fa" fill-opacity="0.45" />
+
+              <polygon points="70,58 82,65 70,72 58,65" fill="#6366f1" fill-opacity="0.7" />
+              <polygon points="275,112 287,119 275,126 263,119" fill="#60a5fa" fill-opacity="0.7" />
+              <polygon points="20,245 95,188 155,225 215,176 305,245" fill="#090d18" stroke="#1e2942" stroke-width="1" />
+            </svg>
+            <div class="hero-SideLabels">
+              REAL EVIDENCE<br />
+              REAL CONSENSUS<br />
+              REAL PAYOUTS
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Feature Cards -->
+        <div class="hero-features-grid">
+          <div class="mini-feat-card">
+            <div class="mini-feat-icon green">👥</div>
+            <div>
+              <div class="mini-feat-title">Multi-Agent Evidence</div>
+              <div class="mini-feat-desc">Curated agent roster (2–8) verifies live web data</div>
+            </div>
+          </div>
+          <div class="mini-feat-card">
+            <div class="mini-feat-icon blue">🧠</div>
+            <div>
+              <div class="mini-feat-title">LLM Consensus</div>
+              <div class="mini-feat-desc">Deterministic outcome classification via GenVM</div>
+            </div>
+          </div>
+          <div class="mini-feat-card">
+            <div class="mini-feat-icon green">💎</div>
+            <div>
+              <div class="mini-feat-title">Trustless Payouts</div>
+              <div class="mini-feat-desc">Native GEN escrow and automatic EOA settlement</div>
+            </div>
+          </div>
+          <div class="mini-feat-card">
+            <div class="mini-feat-icon purple">🛡️</div>
+            <div>
+              <div class="mini-feat-title">On-Chain Transparency</div>
+              <div class="mini-feat-desc">Every SHA-256 fingerprint verifiable on GenLayer</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. ARCHITECTURE OVERVIEW PANEL -->
+      <section id="architecture" class="panel">
+        <div class="panel-header-row">
+          <h2 class="panel-title">Architecture Overview</h2>
+          <a href="#command-center" class="panel-link">Open Command Center →</a>
+        </div>
+        <p class="panel-subtitle">A modular system designed for verifiable AI decision making (`sentinel-strict-consensus-v0.3`).</p>
+
+        <div class="arch-diagram">
+          <!-- Col 1: Web Data & Agents -->
+          <div class="arch-box">
+            <div class="arch-box-title">Web Data &amp; Agents</div>
+            <div class="agent-pill-list">
+              <div class="agent-pill"><span class="dot-ind"></span> Agent 1 (Initiator)</div>
+              <div class="agent-pill"><span class="dot-ind"></span> Agent 2 (`join_mission`)</div>
+              <div class="agent-pill"><span class="dot-ind green"></span> Agent 3 (`roster`)</div>
+              <div class="agent-pill"><span class="dot-ind green"></span> Agent N (`LIMIT_AGENTS = 8`)</div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">→</div>
+
+          <!-- Col 2: Evidence Layer -->
+          <div class="arch-box">
+            <div class="arch-box-title">Evidence Layer</div>
+            <ul class="evidence-list">
+              <li>🔗 HTTPS `source_link`</li>
+              <li>🔒 SHA-256 `content_hash`</li>
+              <li>📄 `gl.nondet.web.render`</li>
+              <li>⛓️ `provide_evidence()`</li>
+            </ul>
+          </div>
+
+          <div class="arch-arrow">→</div>
+
+          <!-- Col 3: LLM Consensus -->
+          <div class="arch-box consensus-glow">
+            <div class="arch-box-title">LLM Consensus</div>
+            <div style="font-size: 2rem; margin: 6px 0;">🧠</div>
+            <div style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.5;">
+              Compare evidence<br />
+              Classify outcome<br />
+              `prompt_comparative`
+            </div>
+          </div>
+
+          <div class="arch-arrow">→</div>
+
+          <!-- Col 4: Outcomes -->
+          <div class="outcome-stack">
+            <div class="outcome-card converged">
+              <div class="outcome-badge-icon">✓</div>
+              <div>
+                <div class="outcome-title" style="color: var(--emerald);">Converged</div>
+                <div class="outcome-sub">Payout via `claim_reward`</div>
+              </div>
+            </div>
+            <div class="outcome-card diverged">
+              <div class="outcome-badge-icon">✕</div>
+              <div>
+                <div class="outcome-title" style="color: #f87171;">Diverged</div>
+                <div class="outcome-sub">Refund via `refund_mission`</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. ON-CHAIN MISSIONS EXPLORER TABLE -->
+      <section class="panel">
+        <div class="panel-header-row">
+          <div>
+            <h2 class="panel-title">On-Chain Missions</h2>
+            <p class="panel-subtitle" style="margin-bottom: 12px;">Live missions fetched from or created on the connected SentinelOracle contract.</p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input id="quickLookupInput" type="text" placeholder="Enter mission_id..." style="width: 170px; padding: 6px 10px; font-size: 0.76rem;" />
+            <button id="quickLookupBtn" class="btn-action">Fetch on Chain</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="missions-table">
+            <thead>
+              <tr>
+                <th>Mission ID</th>
+                <th>Description</th>
+                <th>Escrow Pool</th>
+                <th>Roster</th>
+                <th>Status</th>
+                <th>Cycle</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="liveMissionsBody">
+              <tr id="emptyMissionsRow">
+                <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">
+                  No missions queried in this session yet. Create a mission or enter a <code>mission_id</code> above to load real on-chain data.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- RIGHT COLUMN STACK                                        -->
+    <!-- ========================================================= -->
+    <div class="col-stack">
+
+      <!-- 4. REAL CONTRACT CONSTANTS & HOW IT WORKS PANEL -->
+      <section id="how-it-works" class="panel">
+        <div class="stats-strip">
+          <div class="stat-item">
+            <div class="stat-val">2 – 8</div>
+            <div class="stat-lbl">Agent Roster (`LIMIT_AGENTS`)</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">2 – 12</div>
+            <div class="stat-lbl">Outcomes (`LIMIT_OUTCOMES`)</div>
+          </div>
+          <div class="stat-item">
+            <div id="metricEscrowPool" class="stat-val emerald">0 GEN</div>
+            <div class="stat-lbl">Live Contract Escrow</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">20 KB</div>
+            <div class="stat-lbl">Max Payload (`MAX_PAYLOAD`)</div>
+          </div>
+        </div>
+
+        <h2 class="panel-title">How It Works</h2>
+        <p class="panel-subtitle">From mission creation to native GEN settlement — transparent, autonomous, and on-chain.</p>
+
+        <div class="how-steps-grid">
+          <div class="how-card step-1">
+            <span class="step-badge-num">1</span>
+            <div class="how-icon-box">📄</div>
+            <h4>Create Mission</h4>
+            <p>Initiator defines the question, outcomes, and deposits GEN into escrow.</p>
+            <span class="fn-tag">establish_mission</span>
+          </div>
+
+          <div class="how-card step-2">
+            <span class="step-badge-num">2</span>
+            <div class="how-icon-box">👥</div>
+            <h4>Agents Submit Evidence</h4>
+            <p>Invited agents join the roster and submit HTTPS links with SHA-256 hashes.</p>
+            <span class="fn-tag">provide_evidence</span>
+          </div>
+
+          <div class="how-card step-3">
+            <span class="step-badge-num">3</span>
+            <div class="how-icon-box">🧠</div>
+            <h4>AI Consensus</h4>
+            <p>GenVM renders web pages, evaluates evidence via LLM, and verifies schema.</p>
+            <span class="fn-tag">execute_consensus</span>
+          </div>
+
+          <div class="how-card step-4">
+            <span class="step-badge-num">4</span>
+            <div class="how-icon-box">🪙</div>
+            <h4>Settlement</h4>
+            <p>Agents claim equal GEN rewards on convergence or initiator refunds on divergence.</p>
+            <span class="fn-tag">claim_reward</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. COMMAND CENTER PANEL -->
+      <section id="command-center" class="panel">
+        <div class="panel-header-row">
+          <div>
+            <h2 class="panel-title">Command Center</h2>
+            <p class="panel-subtitle" style="margin-bottom: 14px;">Interact directly with all 14 methods of the SentinelOracle contract on GenLayer.</p>
+          </div>
+          <div id="networkBadge" class="network-pill">
+            <span>🌐</span>
+            <span>GenLayer (Chain ID 61997)</span>
+          </div>
+        </div>
+
+        <!-- 4 Interactive Tabs -->
+        <div class="tabs-bar">
+          <button class="tab-btn active" data-tab="tab-create">1. Create Mission</button>
+          <button class="tab-btn" data-tab="tab-evidence">2. Submit Evidence</button>
+          <button class="tab-btn" data-tab="tab-consensus">3. Execute Consensus</button>
+          <button class="tab-btn" data-tab="tab-results">4. View Results</button>
+        </div>
+
+        <div class="cmd-grid">
+          <!-- LEFT SUB-CARD: TABBED FORMS -->
+          <div class="cmd-box">
+
+            <!-- TAB 1: CREATE & FUND MISSION -->
+            <div id="tab-create" class="tab-pane active">
+              <div class="cmd-box-title">
+                <span>Mission Details</span>
+                <span class="param-code">@payable</span>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Target Mission ID</span>
+                  <span class="param-code">mission_id: str</span>
+                </label>
+                <input id="estMissionId" type="text" placeholder="e.g. upgrade-verify-1" />
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Description</span>
+                  <span class="param-code">description: str</span>
+                </label>
+                <textarea id="estDescription" placeholder="Describe what needs to be verified... (e.g. Was the protocol upgrade successful?)"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>
+                    <span>Allowed Outcomes</span>
+                    <span class="param-code">outcomes_json</span>
+                  </label>
+                  <input id="estOutcomes" type="text" value='["YES", "NO"]' />
+                </div>
+                <div class="form-group">
+                  <label>
+                    <span>Escrow Amount (GEN)</span>
+                    <span class="param-code">gl.message.value</span>
+                  </label>
+                  <input id="estRewardGen" type="number" step="0.1" min="0" value="2" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Invited Agents Roster (JSON Array, 2..8 addresses)</span>
+                  <span class="param-code">agents_json: str</span>
+                </label>
+                <input id="estAgents" type="text" placeholder='["0x3840...", "0x68D0..."]' />
+              </div>
+              <button id="establishBtn" class="btn-primary-full">⊕ Create Mission (`establish_mission`)</button>
+
+              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+                <div class="form-row" style="align-items: end;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>
+                      <span>Top-Up Existing Mission (GEN)</span>
+                      <span class="param-code">fund_mission</span>
+                    </label>
+                    <input id="topupGen" type="number" step="0.1" min="0.1" value="1" />
+                  </div>
+                  <button id="fundMissionBtn" class="btn-action" style="height: 36px;">+ Call fund_mission(mission_id)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: JOIN, SUBMIT EVIDENCE & ROSTER ADMIN -->
+            <div id="tab-evidence" class="tab-pane">
+              <div class="cmd-box-title">
+                <span>Agent Roster &amp; Evidence</span>
+                <span class="param-code">@write</span>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Target Mission ID</span>
+                  <span class="param-code">mission_id: str</span>
+                </label>
+                <input id="actMissionId" type="text" placeholder="e.g. upgrade-verify-1" />
+              </div>
+              <div style="margin-bottom: 12px;">
+                <button id="joinMissionBtn" class="btn-action emerald" style="width: 100%;">✓ Accept Invite: join_mission(mission_id)</button>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>HTTPS Evidence Source Link</span>
+                  <span class="param-code">source_link: str</span>
+                </label>
+                <input id="evUrl" type="url" placeholder="https://example.com/status" />
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>SHA-256 Content Fingerprint (64 hex chars)</span>
+                  <span class="param-code">content_hash: str</span>
+                </label>
+                <div style="display: flex; gap: 6px;">
+                  <input id="evHash" type="text" placeholder="64-char sha256 hex digest" />
+                  <button id="genHashBtn" class="btn-action" title="Compute SHA-256">Auto-Hash</button>
+                </div>
+              </div>
+              <button id="provideEvidenceBtn" class="btn-primary-full">↑ Submit Evidence (`provide_evidence`)</button>
+
+              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+                <label>
+                  <span>Evict Unresponsive Agent (Initiator Only)</span>
+                  <span class="param-code">target_agent: str</span>
+                </label>
+                <div style="display: flex; gap: 6px;">
+                  <input id="evictAgentAddr" type="text" placeholder="0x... target_agent address" />
+                  <button id="evictAgentBtn" class="btn-action danger">evict_unresponsive_agent</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: EXECUTE CONSENSUS, CLAIM, REFUND, WITHDRAW CREDIT -->
+            <div id="tab-consensus" class="tab-pane">
+              <div class="cmd-box-title">
+                <span>AI Consensus &amp; Escrow Settlement</span>
+                <span class="param-code">@write</span>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Target Mission ID</span>
+                  <span class="param-code">mission_id: str</span>
+                </label>
+                <input id="finMissionId" type="text" placeholder="e.g. upgrade-verify-1" />
+              </div>
+
+              <button id="executeConsensusBtn" class="btn-primary-full" style="margin-bottom: 14px;">
+                🧠 Trigger AI Consensus (`execute_consensus`)
+              </button>
+
+              <div class="cmd-box-title" style="font-size: 0.8rem; margin-bottom: 8px;">
+                <span>Native GEN Settlement (`_Wallet.emit_transfer`)</span>
+              </div>
+              <div class="action-grid-2">
+                <button id="claimRewardBtn" class="btn-action emerald">claim_reward(mission_id)</button>
+                <button id="refundMissionBtn" class="btn-action danger">refund_mission(mission_id)</button>
+              </div>
+              <button id="withdrawCreditBtn" class="btn-action" style="width: 100%; margin-top: 8px;">
+                ↺ Withdraw Stranded Credit (`withdraw_credit()`)
+              </button>
+            </div>
+
+            <!-- TAB 4: VIEW RESULTS (ALL 5 @VIEW METHODS) -->
+            <div id="tab-results" class="tab-pane">
+              <div class="cmd-box-title">
+                <span>On-Chain State &amp; Resolution Explorer</span>
+                <span class="param-code">@view</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>
+                    <span>Mission ID</span>
+                    <span class="param-code">mission_id: str</span>
+                  </label>
+                  <input id="inspectMissionId" type="text" placeholder="e.g. upgrade-verify-1" />
+                </div>
+                <div class="form-group">
+                  <label>
+                    <span>Cycle #</span>
+                    <span class="param-code">cycle: int</span>
+                  </label>
+                  <input id="inspectCycle" type="number" min="1" value="1" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>
+                  <span>Credit Lookup Address</span>
+                  <span class="param-code">address: str</span>
+                </label>
+                <input id="inspectCreditAddr" type="text" placeholder="0x... address for get_credit(address)" />
+              </div>
+              <div class="action-grid-2">
+                <button id="fetchMissionBtn" class="btn-action">fetch_mission</button>
+                <button id="fetchResolutionBtn" class="btn-action">fetch_resolution</button>
+                <button id="viewCreditBtn" class="btn-action">get_credit</button>
+                <button id="viewEscrowBtn" class="btn-action">get_escrow_balance</button>
+              </div>
+              <button id="viewOwnerBtn" class="btn-action" style="width: 100%; margin-top: 6px;">get_owner()</button>
+
+              <pre id="inspectorOutput" class="inspector-pre">Query any view method above to inspect live JSON payloads from SentinelOracle.</pre>
+            </div>
+
+          </div>
+
+          <!-- RIGHT SUB-CARD: CONTRACT STATUS -->
+          <div class="cmd-box">
+            <div class="cmd-box-title">
+              <span>Contract Status</span>
+              <button id="refreshStatsBtn" class="btn-mini">↻ Sync</button>
+            </div>
+
+            <div class="status-list">
+              <div class="status-row">
+                <span class="status-lbl">Connected Account</span>
+                <span class="status-val">
+                  <span id="kpiAccount">Not connected</span>
+                  <button id="connectInlineBtn" class="btn-mini">Connect</button>
+                </span>
+              </div>
+              <div class="status-row">
+                <span class="status-lbl">Escrow Balance</span>
+                <span id="kpiEscrow" class="status-val">0 GEN</span>
+              </div>
+              <div class="status-row">
+                <span class="status-lbl">Your Credit</span>
+                <span id="kpiCredit" class="status-val">0 GEN</span>
+              </div>
+              <div class="status-row">
+                <span class="status-lbl">Contract Owner</span>
+                <span class="status-val">
+                  <span id="kpiOwner">—</span>
+                  <button id="copyOwnerBtn" class="btn-mini" title="Copy Owner Address">📋</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="address-card">
+              <label style="margin-bottom: 4px;">
+                <span>SentinelOracle Address</span>
+                <span class="param-code">Chain 61997</span>
+              </label>
+              <input id="contractAddressInput" type="text" value="0xCD4E691161169F38DcD95DCBEd7029d5583073D1" placeholder="0x... Paste deployed contract address" />
+              <div class="address-bar-row">
+                <button id="saveContractBtn" class="btn-action" style="flex: 1;">Load Address</button>
+                <button id="copyContractBtn" class="btn-action" title="Copy Contract Address">📋</button>
+                <button id="openExplorerBtn" class="btn-action">View on Explorer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. ON-CHAIN TRANSPARENCY & LIVE TERMINAL PANEL -->
+      <section class="panel transparency-panel">
+        <h2 class="panel-title">On-Chain Transparency</h2>
+        <p class="panel-subtitle" style="margin-bottom: 12px;">Every step is recorded and verifiable on GenLayer.</p>
+
+        <div class="transp-grid">
+          <div class="transp-card">
+            <div class="mini-feat-icon blue">🛡️</div>
+            <div>
+              <div class="mini-feat-title">Verified Evidence</div>
+              <div class="mini-feat-desc">SHA-256 content fingerprints</div>
+            </div>
+          </div>
+          <div class="transp-card">
+            <div class="mini-feat-icon purple">☑️</div>
+            <div>
+              <div class="mini-feat-title">Deterministic Logic</div>
+              <div class="mini-feat-desc">Open contract code on-chain</div>
+            </div>
+          </div>
+          <div class="transp-card">
+            <div class="mini-feat-icon green">💎</div>
+            <div>
+              <div class="mini-feat-title">Trustless Payouts</div>
+              <div class="mini-feat-desc">No admin control over results</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <button id="explorerBottomBtn" class="btn-ghost" style="font-size: 0.8rem; padding: 9px 16px;">
+            View Contract on Explorer →
+          </button>
+          <button id="clearLogBtn" class="btn-action" style="font-size: 0.72rem;">Clear Terminal Log</button>
+        </div>
+
+        <!-- Live Transaction & RPC Log -->
+        <div id="terminalLog" class="terminal-drawer"></div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script type="module" src="main.js?v=5"></script>
+</body>
+</html>

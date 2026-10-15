@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bgGrad)" stroke="url(#accentGrad)" stroke-width="3" />
+
+  <!-- Outer Hexagonal Shield -->
+  <polygon points="100,32 156,64 156,128 100,168 44,128 44,64" fill="none" stroke="#6366f1" stroke-width="3" stroke-opacity="0.45" />
+
+  <!-- Oracle Eye Contour -->
+  <path d="M 48 100 Q 100 54 152 100 Q 100 146 48 100 Z" fill="none" stroke="url(#accentGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Inner Consensus Ring -->
+  <circle cx="100" cy="100" r="22" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="6 4" />
+
+  <!-- Core AI Pupil -->
+  <circle cx="100" cy="100" r="10" fill="#10b981" />
+
+  <!-- Agent Nodes -->
+  <circle cx="100" cy="32" r="4.5" fill="#6366f1" />
+  <circle cx="156" cy="64" r="4.5" fill="#10b981" />
+  <circle cx="156" cy="128" r="4.5" fill="#6366f1" />
+  <circle cx="100" cy="168" r="4.5" fill="#10b981" />
+  <circle cx="44" cy="128" r="4.5" fill="#6366f1" />
+  <circle cx="44" cy="64" r="4.5" fill="#10b981" />
+</svg>
