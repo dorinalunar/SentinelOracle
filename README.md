@@ -8,7 +8,9 @@
   [![GenVM](https://img.shields.io/badge/GenVM-v0.3.0-059669.svg)]()
   [![Python](https://img.shields.io/badge/Contract-Python-3776AB.svg)]()
 </div>
+
 ---
+
 **SentinelOracle** is a decentralized oracle protocol built on GenLayer (GenVM v0.3.0) that coordinates multiple invited agents to verify real-world web evidence and resolve missions into deterministic outcomes. It combines cryptographic SHA-256 content fingerprinting, nondeterministic LLM classification, comparative equivalence principles, and native GEN escrow mechanics.
 ## On-Chain Deployment
 
