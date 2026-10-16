@@ -933,7 +933,6 @@
       margin-top: 8px;
     }
 
-    /* Contract Status Right Column */
     .status-list {
       display: flex;
       flex-direction: column;
@@ -1008,9 +1007,6 @@
       margin-top: 10px;
     }
 
-    /* ===================================================== */
-    /* BOTTOM-RIGHT PANEL: ON-CHAIN TRANSPARENCY             */
-    /* ===================================================== */
     .transparency-panel {
       background:
         radial-gradient(circle at 88% 55%, rgba(99, 102, 241, 0.24) 0%, rgba(11, 16, 30, 0.96) 65%),
@@ -1101,7 +1097,7 @@
               Truth Resolution
             </h1>
             <p class="hero-subtitle">
-              SentinelOracle is an intelligent oracle contract built for GenLayer (GenVM v0.3.0). It coordinates multi-agent web evidence verification and delivers deterministic LLM outcome classification with trustless native GEN escrow payouts.
+              SentinelOracle is an intelligent oracle contract built for GenLayer (GenVM v0.3.0). It coordinates multi-agent web evidence verification, enforces strict SHA-256 content fingerprinting, and delivers deterministic LLM outcome classification with frozen-roster native GEN payouts.
             </p>
             <div class="hero-cta-row">
               <a href="#command-center" class="btn-white">Launch Command Center →</a>
@@ -1109,7 +1105,6 @@
             </div>
           </div>
 
-          <!-- Glowing 3D Cube & Orbit Graphic -->
           <div class="hero-visual">
             <svg viewBox="0 0 340 260" width="100%" height="250" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -1155,7 +1150,6 @@
           </div>
         </div>
 
-        <!-- 4 Feature Cards -->
         <div class="hero-features-grid">
           <div class="mini-feat-card">
             <div class="mini-feat-icon green">👥</div>
@@ -1174,15 +1168,15 @@
           <div class="mini-feat-card">
             <div class="mini-feat-icon green">💎</div>
             <div>
-              <div class="mini-feat-title">Trustless Payouts</div>
-              <div class="mini-feat-desc">Native GEN escrow and automatic EOA settlement</div>
+              <div class="mini-feat-title">Frozen Settlement</div>
+              <div class="mini-feat-desc">Frozen payout denominator &amp; native EOA settlement</div>
             </div>
           </div>
           <div class="mini-feat-card">
             <div class="mini-feat-icon purple">🛡️</div>
             <div>
-              <div class="mini-feat-title">On-Chain Transparency</div>
-              <div class="mini-feat-desc">Every SHA-256 fingerprint verifiable on GenLayer</div>
+              <div class="mini-feat-title">Strict Content Hash</div>
+              <div class="mini-feat-desc">Mismatched SHA-256 content hashes block convergence</div>
             </div>
           </div>
         </div>
@@ -1197,7 +1191,6 @@
         <p class="panel-subtitle">A modular system designed for verifiable AI decision making (`sentinel-strict-consensus-v0.3`).</p>
 
         <div class="arch-diagram">
-          <!-- Col 1: Web Data & Agents -->
           <div class="arch-box">
             <div class="arch-box-title">Web Data &amp; Agents</div>
             <div class="agent-pill-list">
@@ -1210,7 +1203,6 @@
 
           <div class="arch-arrow">→</div>
 
-          <!-- Col 2: Evidence Layer -->
           <div class="arch-box">
             <div class="arch-box-title">Evidence Layer</div>
             <ul class="evidence-list">
@@ -1223,12 +1215,11 @@
 
           <div class="arch-arrow">→</div>
 
-          <!-- Col 3: LLM Consensus -->
           <div class="arch-box consensus-glow">
             <div class="arch-box-title">LLM Consensus</div>
             <div style="font-size: 2rem; margin: 6px 0;">🧠</div>
             <div style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.5;">
-              Compare evidence<br />
+              Verify SHA-256 match<br />
               Classify outcome<br />
               `prompt_comparative`
             </div>
@@ -1236,20 +1227,19 @@
 
           <div class="arch-arrow">→</div>
 
-          <!-- Col 4: Outcomes -->
           <div class="outcome-stack">
             <div class="outcome-card converged">
               <div class="outcome-badge-icon">✓</div>
               <div>
                 <div class="outcome-title" style="color: var(--emerald);">Converged</div>
-                <div class="outcome-sub">Payout via `claim_reward`</div>
+                <div class="outcome-sub">Frozen roster `claim_reward`</div>
               </div>
             </div>
             <div class="outcome-card diverged">
               <div class="outcome-badge-icon">✕</div>
               <div>
                 <div class="outcome-title" style="color: #f87171;">Diverged</div>
-                <div class="outcome-sub">Refund via `refund_mission`</div>
+                <div class="outcome-sub">Mismatch or `refund_mission`</div>
               </div>
             </div>
           </div>
@@ -1276,7 +1266,7 @@
                 <th>Mission ID</th>
                 <th>Description</th>
                 <th>Escrow Pool</th>
-                <th>Roster</th>
+                <th>Roster / Frozen</th>
                 <th>Status</th>
                 <th>Cycle</th>
                 <th></th>
@@ -1337,7 +1327,7 @@
             <span class="step-badge-num">2</span>
             <div class="how-icon-box">👥</div>
             <h4>Agents Submit Evidence</h4>
-            <p>Invited agents join the roster and submit HTTPS links with SHA-256 hashes.</p>
+            <p>Invited agents join the roster and submit HTTPS links with SHA-256 content hashes.</p>
             <span class="fn-tag">provide_evidence</span>
           </div>
 
@@ -1345,7 +1335,7 @@
             <span class="step-badge-num">3</span>
             <div class="how-icon-box">🧠</div>
             <h4>AI Consensus</h4>
-            <p>GenVM renders web pages, evaluates evidence via LLM, and verifies schema.</p>
+            <p>GenVM renders web pages, verifies content hashes, and classifies via LLM.</p>
             <span class="fn-tag">execute_consensus</span>
           </div>
 
@@ -1353,7 +1343,7 @@
             <span class="step-badge-num">4</span>
             <div class="how-icon-box">🪙</div>
             <h4>Settlement</h4>
-            <p>Agents claim equal GEN rewards on convergence or initiator refunds on divergence.</p>
+            <p>Frozen eligible agents claim equal GEN rewards on convergence or initiator refunds.</p>
             <span class="fn-tag">claim_reward</span>
           </div>
         </div>
@@ -1372,7 +1362,7 @@
           </div>
         </div>
 
-        <!-- 4 Interactive Tabs -->
+        <!-- 4 Interactive Tabs covering all 14 contract methods -->
         <div class="tabs-bar">
           <button class="tab-btn active" data-tab="tab-create">1. Create Mission</button>
           <button class="tab-btn" data-tab="tab-evidence">2. Submit Evidence</button>
@@ -1384,7 +1374,7 @@
           <!-- LEFT SUB-CARD: TABBED FORMS -->
           <div class="cmd-box">
 
-            <!-- TAB 1: CREATE & FUND MISSION -->
+            <!-- TAB 1: CREATE & FUND MISSION (establish_mission, fund_mission) -->
             <div id="tab-create" class="tab-pane active">
               <div class="cmd-box-title">
                 <span>Mission Details</span>
@@ -1443,7 +1433,7 @@
               </div>
             </div>
 
-            <!-- TAB 2: JOIN, SUBMIT EVIDENCE & ROSTER ADMIN -->
+            <!-- TAB 2: JOIN, SUBMIT EVIDENCE & EVICT (join_mission, provide_evidence, evict_unresponsive_agent) -->
             <div id="tab-evidence" class="tab-pane">
               <div class="cmd-box-title">
                 <span>Agent Roster &amp; Evidence</span>
@@ -1468,19 +1458,26 @@
               </div>
               <div class="form-group">
                 <label>
+                  <span>Evidence Content Snapshot (rendered text, max 20,000 chars)</span>
+                  <span class="param-code">SHA-256 content source</span>
+                </label>
+                <textarea id="evContent" placeholder="Paste rendered page text here (or click Hash Content to fetch &amp; hash page body; URL digests are never used)..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>
                   <span>SHA-256 Content Fingerprint (64 hex chars)</span>
                   <span class="param-code">content_hash: str</span>
                 </label>
                 <div style="display: flex; gap: 6px;">
-                  <input id="evHash" type="text" placeholder="64-char sha256 hex digest" />
-                  <button id="genHashBtn" class="btn-action" title="Compute SHA-256">Auto-Hash</button>
+                  <input id="evHash" type="text" placeholder="64-char sha256 hex digest of page content" />
+                  <button id="genHashBtn" class="btn-action" title="Compute SHA-256 of Evidence Content">Hash Content</button>
                 </div>
               </div>
               <button id="provideEvidenceBtn" class="btn-primary-full">↑ Submit Evidence (`provide_evidence`)</button>
 
               <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
                 <label>
-                  <span>Evict Unresponsive Agent (Initiator Only)</span>
+                  <span>Evict Unresponsive Agent (Initiator Only, pre-convergence)</span>
                   <span class="param-code">target_agent: str</span>
                 </label>
                 <div style="display: flex; gap: 6px;">
@@ -1520,7 +1517,7 @@
               </button>
             </div>
 
-            <!-- TAB 4: VIEW RESULTS (ALL 5 @VIEW METHODS) -->
+            <!-- TAB 4: VIEW RESULTS (fetch_mission, fetch_resolution, get_credit, get_escrow_balance, get_owner) -->
             <div id="tab-results" class="tab-pane">
               <div class="cmd-box-title">
                 <span>On-Chain State &amp; Resolution Explorer</span>
@@ -1599,7 +1596,7 @@
                 <span>SentinelOracle Address</span>
                 <span class="param-code">Chain 61997</span>
               </label>
-              <input id="contractAddressInput" type="text" value="0xCD4E691161169F38DcD95DCBEd7029d5583073D1" placeholder="0x... Paste deployed contract address" />
+              <input id="contractAddressInput" type="text" value="0xA95f422ae4655099E962Fe2196a12155C7D1802d" placeholder="0x... Paste deployed contract address" />
               <div class="address-bar-row">
                 <button id="saveContractBtn" class="btn-action" style="flex: 1;">Load Address</button>
                 <button id="copyContractBtn" class="btn-action" title="Copy Contract Address">📋</button>
@@ -1634,7 +1631,7 @@
             <div class="mini-feat-icon green">💎</div>
             <div>
               <div class="mini-feat-title">Trustless Payouts</div>
-              <div class="mini-feat-desc">No admin control over results</div>
+              <div class="mini-feat-desc">Frozen eligibility &amp; denominator</div>
             </div>
           </div>
         </div>
@@ -1646,7 +1643,6 @@
           <button id="clearLogBtn" class="btn-action" style="font-size: 0.72rem;">Clear Terminal Log</button>
         </div>
 
-        <!-- Live Transaction & RPC Log -->
         <div id="terminalLog" class="terminal-drawer"></div>
       </section>
 
@@ -1654,6 +1650,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=5"></script>
+  <script type="module" src="main.js?v=7"></script>
 </body>
 </html>
