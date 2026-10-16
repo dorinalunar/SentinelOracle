@@ -3,7 +3,7 @@ import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
 // Deployed SentinelOracle address on GenLayer Studio Dev (Chain 61997).
 const DEFAULT_CONTRACT_ADDRESS =
-  localStorage.getItem("sentinel_contract_address_v5") ||
+  localStorage.getItem("sentinel_contract_address_v6") ||
   "0xA95f422ae4655099E962Fe2196a12155C7D1802d";
 
 const STUDIO_CHAIN_ID_DEC = 61997;
@@ -260,7 +260,7 @@ function requireContract() {
     throw new Error("Enter a valid 42-character 0x SentinelOracle address in Contract Status.");
   }
   contractAddress = addr;
-  localStorage.setItem("sentinel_contract_address_v5", contractAddress);
+  localStorage.setItem("sentinel_contract_address_v6", contractAddress);
   return contractAddress;
 }
 
@@ -325,9 +325,8 @@ async function refreshContractStats() {
       const creditRaw = await readContract("get_credit", [targetAddr]);
       kpiCredit.textContent = formatGen(creditRaw);
     }
-    logTerminal("Synchronized live get_escrow_balance(), get_owner(), and get_credit().", "info");
-  } catch (err) {
-    logTerminal(`Stats sync error: ${err.message}`, "err");
+  } catch {
+    // Silent catch to prevent background view sync noise during node state transitions
   }
 }
 
