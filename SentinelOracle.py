@@ -112,6 +112,8 @@ class SentinelOracle(gl.contract.Contract):
             "outcomes": outcomes,
             "invited": invited,
             "roster": roster,
+            "eligible_agents": [],
+            "payout_denominator": 0,
             "current_cycle": 1,
             "latest_resolution_id": "",
             "latest_status": "PENDING",
@@ -196,8 +198,24 @@ class SentinelOracle(gl.contract.Contract):
         if mission.get("latest_status") != "CONVERGED":
             raise Exception("ERR_MISSION_NOT_CONVERGED")
 
-        roster = mission.get("roster", {})
-        if sender not in roster or not roster[sender]:
+        res_id = mission.get("latest_resolution_id", "")
+        resolutions = self._load("resolutions_json")
+        latest_res = resolutions.get(res_id)
+        if not latest_res or latest_res.get("status") != "CONVERGED":
+            raise Exception("ERR_MISSION_NOT_CONVERGED")
+
+        res_details = json.loads(latest_res.get("details_json", "{}"))
+        res_logs = res_details.get("agent_logs", [])
+        if not res_logs or not all(bool(log.get("hash_verified", False)) for log in res_logs):
+            raise Exception("ERR_FINGERPRINT_MISMATCH")
+
+        frozen_eligible = mission.get("eligible_agents") or []
+        frozen_denominator = int(mission.get("payout_denominator", 0))
+
+        if not frozen_eligible or frozen_denominator <= 0:
+            raise Exception("ERR_EMPTY_ROSTER")
+
+        if sender not in frozen_eligible:
             raise Exception("ERR_NOT_ACTIVE_AGENT")
 
         claim_key = f"{m_id}:{sender}"
@@ -205,12 +223,8 @@ class SentinelOracle(gl.contract.Contract):
         if claimed.get(claim_key, False):
             raise Exception("ERR_ALREADY_CLAIMED")
 
-        total_agents = len(roster)
-        if total_agents <= 0:
-            raise Exception("ERR_EMPTY_ROSTER")
-
         pool = int(mission.get("reward_pool", "0"))
-        payout = pool // total_agents
+        payout = pool // frozen_denominator
         if payout <= 0:
             raise Exception("ERR_NOTHING_TO_PAY")
         if int(self.balance) < payout:
@@ -299,6 +313,9 @@ class SentinelOracle(gl.contract.Contract):
         if m_id not in missions:
             raise Exception("ERR_MISSION_NOT_FOUND")
         mission = missions[m_id]
+
+        if mission.get("is_refunded", False) or mission.get("latest_status") == "CONVERGED":
+            raise Exception("ERR_MISSION_CLOSED")
 
         sender = str(gl.message.sender_address).lower()
         if sender != str(mission.get("initiator", "")).lower():
@@ -402,6 +419,12 @@ class SentinelOracle(gl.contract.Contract):
 
         mission["latest_resolution_id"] = res_id
         mission["latest_status"] = record["status"]
+        if record["status"] == "CONVERGED":
+            frozen_agents = sorted(
+                str(addr).lower() for addr, active in roster.items() if active
+            )
+            mission["eligible_agents"] = frozen_agents
+            mission["payout_denominator"] = len(frozen_agents)
         mission["current_cycle"] = cycle + 1
         missions[m_id] = mission
         self._save("missions_json", missions)
@@ -421,10 +444,13 @@ class SentinelOracle(gl.contract.Contract):
                 evidence = evidences[evidence_key]
                 web_data = self._grab_web_content(evidence["source_link"])
 
-                hash_match = (web_data["fingerprint"] == evidence["content_hash"])
+                hash_match = (
+                    web_data["network_status"] == "SUCCESS"
+                    and web_data["fingerprint"] == evidence["content_hash"]
+                )
                 evaluated_belief = "UNDETERMINED"
 
-                if web_data["network_status"] == "SUCCESS":
+                if web_data["network_status"] == "SUCCESS" and hash_match:
                     prompt = (
                         f"Mission: {description}\n"
                         f"Allowed Outcomes: {_dumps(outcomes)}\n"
@@ -455,8 +481,10 @@ class SentinelOracle(gl.contract.Contract):
                 })
 
             beliefs = [log["agent_belief"] for log in logs]
+            all_hashes_verified = len(logs) > 0 and all(log["hash_verified"] for log in logs)
             is_unanimous = (
                 len(beliefs) > 0
+                and all_hashes_verified
                 and "UNDETERMINED" not in beliefs
                 and all(b == beliefs[0] for b in beliefs)
             )
@@ -573,13 +601,17 @@ class SentinelOracle(gl.contract.Contract):
                 belief = str(log["agent_belief"]).upper()
                 if belief != "UNDETERMINED" and belief not in outcomes:
                     return False
+                if not log["hash_verified"] and belief != "UNDETERMINED":
+                    return False
 
             if sorted(logged_agents) != roster_agents:
                 return False
 
             beliefs = [str(log["agent_belief"]).upper() for log in logs]
+            all_hashes_verified = len(logs) > 0 and all(log["hash_verified"] is True for log in logs)
             expected_unanimous = (
                 len(beliefs) > 0
+                and all_hashes_verified
                 and "UNDETERMINED" not in beliefs
                 and all(b == beliefs[0] for b in beliefs)
             )
