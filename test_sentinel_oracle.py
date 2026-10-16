@@ -154,7 +154,6 @@ def test_establish_mission_and_escrow(oracle):
 
 
 def test_payable_validation_failure_credits_sender_and_withdraws(oracle):
-    # First create a valid mission
     _set_caller(AGENT_1, 100)
     oracle.balance = 100
     oracle.establish_mission(
@@ -164,7 +163,6 @@ def test_payable_validation_failure_credits_sender_and_withdraws(oracle):
         json.dumps([AGENT_1, AGENT_2]),
     )
 
-    # Attempt to create the same mission ID with 50 GEN attached -> should NOT revert, but credit
     _set_caller(AGENT_2, 50)
     oracle.balance += 50
     dup_res = json.loads(
@@ -180,7 +178,6 @@ def test_payable_validation_failure_credits_sender_and_withdraws(oracle):
     assert dup_res["reason"] == "ERR_MISSION_ID_EXISTS"
     assert oracle.get_credit(AGENT_2) == "50"
 
-    # Withdraw credit back to AGENT_2
     _set_caller(AGENT_2, 0)
     oracle.withdraw_credit()
     assert oracle.get_credit(AGENT_2) == "0"
@@ -191,7 +188,6 @@ def test_full_consensus_and_reward_claims(oracle):
     global MOCK_LLM_OUTCOME
     MOCK_LLM_OUTCOME = {"outcome": "YES"}
 
-    # 1. Establish mission with 100 GEN reward pool
     _set_caller(AGENT_1, 100)
     oracle.balance = 100
     oracle.establish_mission(
@@ -201,11 +197,9 @@ def test_full_consensus_and_reward_claims(oracle):
         json.dumps([AGENT_1, AGENT_2]),
     )
 
-    # 2. Agent 2 joins
     _set_caller(AGENT_2, 0)
     oracle.join_mission("mission-consensus")
 
-    # 3. Both agents provide valid evidence
     expected_hash = hashlib.sha256(MOCK_WEB_CONTENT.encode()).hexdigest()
     _set_caller(AGENT_1, 0)
     oracle.provide_evidence("mission-consensus", "https://example.com/status", expected_hash)
@@ -213,18 +207,15 @@ def test_full_consensus_and_reward_claims(oracle):
     _set_caller(AGENT_2, 0)
     oracle.provide_evidence("mission-consensus", "https://example.com/status", expected_hash)
 
-    # 4. Execute consensus
     _set_caller(AGENT_1, 0)
     resolution_json = oracle.execute_consensus("mission-consensus")
     resolution = json.loads(resolution_json)
     assert resolution["resolution_status"] == "CONVERGED"
     assert resolution["agreed_outcome"] == "YES"
 
-    # 5. Initiator cannot refund a CONVERGED mission
     with pytest.raises(Exception, match="ERR_CANNOT_REFUND_CONVERGED"):
         oracle.refund_mission("mission-consensus")
 
-    # 6. Both agents claim their 50 GEN share
     _set_caller(AGENT_1, 0)
     oracle.claim_reward("mission-consensus")
     assert TRANSFERS[-1] == (AGENT_1, 50)
@@ -233,9 +224,121 @@ def test_full_consensus_and_reward_claims(oracle):
     oracle.claim_reward("mission-consensus")
     assert TRANSFERS[-1] == (AGENT_2, 50)
 
-    # 7. Double claim is blocked
     with pytest.raises(Exception, match="ERR_ALREADY_CLAIMED"):
         oracle.claim_reward("mission-consensus")
+
+
+def test_mismatched_content_prevents_convergence_and_reward_settlement(oracle):
+    """Focused test: a SHA-256 content fingerprint mismatch must force DIVERGED and block payouts."""
+    global MOCK_LLM_OUTCOME
+    MOCK_LLM_OUTCOME = {"outcome": "YES"}
+
+    _set_caller(AGENT_1, 100)
+    oracle.balance = 100
+    oracle.establish_mission(
+        "mission-mismatch",
+        "Verify release with strict fingerprint checking",
+        json.dumps(["YES", "NO"]),
+        json.dumps([AGENT_1, AGENT_2]),
+    )
+
+    _set_caller(AGENT_2, 0)
+    oracle.join_mission("mission-mismatch")
+
+    valid_content_hash = hashlib.sha256(MOCK_WEB_CONTENT.encode()).hexdigest()
+    url_digest_or_wrong_hash = hashlib.sha256(b"https://example.com/status").hexdigest()
+
+    _set_caller(AGENT_1, 0)
+    oracle.provide_evidence("mission-mismatch", "https://example.com/status", valid_content_hash)
+
+    # Agent 2 submits a mismatched hash (e.g. URL digest instead of page content hash)
+    _set_caller(AGENT_2, 0)
+    oracle.provide_evidence("mission-mismatch", "https://example.com/status", url_digest_or_wrong_hash)
+
+    _set_caller(AGENT_1, 0)
+    resolution = json.loads(oracle.execute_consensus("mission-mismatch"))
+
+    assert resolution["resolution_status"] == "DIVERGED"
+    assert resolution["agreed_outcome"] == "UNDETERMINED"
+
+    logs_by_agent = {log["agent"]: log for log in resolution["agent_logs"]}
+    assert logs_by_agent[AGENT_1.lower()]["hash_verified"] is True
+    assert logs_by_agent[AGENT_1.lower()]["agent_belief"] == "YES"
+    assert logs_by_agent[AGENT_2.lower()]["hash_verified"] is False
+    assert logs_by_agent[AGENT_2.lower()]["agent_belief"] == "UNDETERMINED"
+
+    mission = json.loads(oracle.fetch_mission("mission-mismatch"))
+    assert mission["latest_status"] == "DIVERGED"
+    assert mission["eligible_agents"] == []
+    assert mission["payout_denominator"] == 0
+
+    # Neither agent can settle or claim rewards when fingerprint verification fails
+    _set_caller(AGENT_1, 0)
+    with pytest.raises(Exception, match="ERR_MISSION_NOT_CONVERGED"):
+        oracle.claim_reward("mission-mismatch")
+
+    _set_caller(AGENT_2, 0)
+    with pytest.raises(Exception, match="ERR_MISSION_NOT_CONVERGED"):
+        oracle.claim_reward("mission-mismatch")
+
+    assert len(TRANSFERS) == 0
+
+
+def test_post_convergence_roster_changes_blocked_and_payout_frozen(oracle):
+    """Focused test: post-convergence roster changes are rejected and frozen denominator governs payouts."""
+    global MOCK_LLM_OUTCOME
+    MOCK_LLM_OUTCOME = {"outcome": "YES"}
+
+    _set_caller(AGENT_1, 300)
+    oracle.balance = 300
+    oracle.establish_mission(
+        "mission-freeze",
+        "Three-agent mission to verify frozen payout denominator",
+        json.dumps(["YES", "NO"]),
+        json.dumps([AGENT_1, AGENT_2, AGENT_3]),
+    )
+
+    _set_caller(AGENT_2, 0)
+    oracle.join_mission("mission-freeze")
+    _set_caller(AGENT_3, 0)
+    oracle.join_mission("mission-freeze")
+
+    valid_hash = hashlib.sha256(MOCK_WEB_CONTENT.encode()).hexdigest()
+    for agent in (AGENT_1, AGENT_2, AGENT_3):
+        _set_caller(agent, 0)
+        oracle.provide_evidence("mission-freeze", "https://example.com/status", valid_hash)
+
+    _set_caller(AGENT_1, 0)
+    resolution = json.loads(oracle.execute_consensus("mission-freeze"))
+    assert resolution["resolution_status"] == "CONVERGED"
+
+    mission = json.loads(oracle.fetch_mission("mission-freeze"))
+    assert mission["payout_denominator"] == 3
+    assert sorted(mission["eligible_agents"]) == sorted(
+        [AGENT_1.lower(), AGENT_2.lower(), AGENT_3.lower()]
+    )
+
+    # Initiator attempts to evict AGENT_3 after convergence to inflate their payout -> blocked
+    _set_caller(AGENT_1, 0)
+    with pytest.raises(Exception, match="ERR_MISSION_CLOSED"):
+        oracle.evict_unresponsive_agent("mission-freeze", AGENT_3)
+
+    # Even if mutable roster dict were altered externally, claim_reward uses frozen eligible_agents & denominator
+    missions_state = json.loads(oracle.missions_json)
+    del missions_state["mission-freeze"]["roster"][AGENT_3.lower()]
+    oracle.missions_json = json.dumps(missions_state)
+
+    _set_caller(AGENT_1, 0)
+    oracle.claim_reward("mission-freeze")
+    assert TRANSFERS[-1] == (AGENT_1, 100)
+
+    _set_caller(AGENT_2, 0)
+    oracle.claim_reward("mission-freeze")
+    assert TRANSFERS[-1] == (AGENT_2, 100)
+
+    _set_caller(AGENT_3, 0)
+    oracle.claim_reward("mission-freeze")
+    assert TRANSFERS[-1] == (AGENT_3, 100)
 
 
 def test_refund_unconverged_mission(oracle):
@@ -248,12 +351,10 @@ def test_refund_unconverged_mission(oracle):
         json.dumps([AGENT_1, AGENT_2]),
     )
 
-    # Non-initiator cannot refund
     _set_caller(AGENT_2, 0)
     with pytest.raises(Exception, match="ERR_UNAUTHORIZED"):
         oracle.refund_mission("mission-refund")
 
-    # Initiator refunds full escrow
     _set_caller(AGENT_1, 0)
     oracle.refund_mission("mission-refund")
     assert TRANSFERS[-1] == (AGENT_1, 80)
@@ -277,6 +378,5 @@ def test_evict_unresponsive_agent(oracle):
     mission = json.loads(oracle.fetch_mission("mission-evict"))
     assert AGENT_3.lower() not in mission["roster"]
 
-    # Cannot evict when only 2 agents remain
     with pytest.raises(Exception, match="ERR_MIN_AGENTS_REQUIRED"):
         oracle.evict_unresponsive_agent("mission-evict", AGENT_2)
