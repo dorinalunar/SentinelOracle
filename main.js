@@ -3,7 +3,7 @@ import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
 // Deployed SentinelOracle address on GenLayer Studio Dev (Chain 61997).
 const DEFAULT_CONTRACT_ADDRESS =
-  localStorage.getItem("sentinel_contract_address_v2") ||
+  localStorage.getItem("sentinel_contract_address_v5") ||
   "0xA95f422ae4655099E962Fe2196a12155C7D1802d";
 
 const STUDIO_CHAIN_ID_DEC = 61997;
@@ -12,6 +12,17 @@ const STUDIO_RPC_URL = "https://studio-dev.genlayer.com/api";
 const EXPLORER_BASE_URL = "https://explorer-studio-dev.genlayer.com/address/";
 const WEI_PER_GEN = 10n ** 18n;
 const MAX_PAYLOAD = 20000;
+
+const studioDevChain = {
+  ...studionet,
+  id: STUDIO_CHAIN_ID_DEC,
+  name: "GenLayer Studio Dev",
+  rpcUrls: {
+    ...(studionet?.rpcUrls || {}),
+    default: { http: [STUDIO_RPC_URL] },
+    public: { http: [STUDIO_RPC_URL] },
+  },
+};
 
 let connectedAccount = null;
 let contractAddress = DEFAULT_CONTRACT_ADDRESS;
@@ -89,14 +100,6 @@ function shortAddr(addr) {
   return `${s.slice(0, 6)}...${s.slice(-4)}`;
 }
 
-function syncMissionIdInputs(mId) {
-  if (!mId) return;
-  document.getElementById("estMissionId").value = mId;
-  document.getElementById("actMissionId").value = mId;
-  document.getElementById("finMissionId").value = mId;
-  document.getElementById("inspectMissionId").value = mId;
-}
-
 function upsertLiveMissionRow(missionObj) {
   if (!missionObj || !missionObj.mission_id) return;
   const emptyRow = document.getElementById("emptyMissionsRow");
@@ -147,7 +150,7 @@ liveMissionsBody.addEventListener("click", (e) => {
   const btn = e.target.closest(".btn-table-view");
   if (!btn) return;
   const mId = btn.dataset.mid;
-  syncMissionIdInputs(mId);
+  document.getElementById("inspectMissionId").value = mId;
   activateTab("tab-results");
   document.getElementById("command-center").scrollIntoView({ behavior: "smooth" });
   if (contractAddressInput.value.trim()) {
@@ -158,18 +161,18 @@ liveMissionsBody.addEventListener("click", (e) => {
 document.getElementById("quickLookupBtn").addEventListener("click", () => {
   const mId = document.getElementById("quickLookupInput").value.trim();
   if (!mId) return;
-  syncMissionIdInputs(mId);
+  document.getElementById("inspectMissionId").value = mId;
   activateTab("tab-results");
   document.getElementById("fetchMissionBtn").click();
 });
 
 // =========================================================
-// GENLAYER CLIENT & WALLET CONNECTION
+// GENLAYER CLIENT & WALLET CONNECTION (CHAIN 61997)
 // =========================================================
 function rebuildClient() {
   try {
     const config = {
-      chain: studionet,
+      chain: studioDevChain,
       endpoint: STUDIO_RPC_URL,
     };
     if (connectedAccount) {
@@ -186,7 +189,7 @@ async function ensureStudioNetwork() {
     throw new Error("No Web3 wallet detected. Please install MetaMask or Rabby.");
   }
   const currentChain = await window.ethereum.request({ method: "eth_chainId" });
-  if (currentChain.toLowerCase() !== STUDIO_CHAIN_ID_HEX) {
+  if (String(currentChain).toLowerCase() !== STUDIO_CHAIN_ID_HEX) {
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -226,22 +229,29 @@ async function connectWallet() {
     connectInlineBtn.textContent = "Connected";
     networkBadge.innerHTML = `<span style="color: #10b981;">●</span> <span>GenLayer (Chain ID ${STUDIO_CHAIN_ID_DEC})</span>`;
 
-    const estAgentsEl = document.getElementById("estAgents");
-    if (!estAgentsEl.value.trim()) {
-      estAgentsEl.value = JSON.stringify([connectedAccount, "0x68D0CaF57A525AD9146B7dF81c8c5E3871ba7Bf9"]);
-    }
-
-    const inspectCreditEl = document.getElementById("inspectCreditAddr");
-    if (!inspectCreditEl.value.trim()) {
-      inspectCreditEl.value = connectedAccount;
-    }
-
     rebuildClient();
     logTerminal(`Wallet connected: ${connectedAccount}`, "ok");
     await refreshContractStats();
   } catch (err) {
     logTerminal(`Wallet error: ${err.message}`, "err");
+    throw err;
   }
+}
+
+if (window.ethereum && window.ethereum.on) {
+  window.ethereum.on("chainChanged", () => {
+    rebuildClient();
+  });
+
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts && accounts.length > 0) {
+      connectedAccount = accounts[0];
+      kpiAccount.textContent = shortAddr(connectedAccount);
+      connectBtn.textContent = shortAddr(connectedAccount);
+      rebuildClient();
+      logTerminal(`Active account changed to ${connectedAccount}`, "info");
+    }
+  });
 }
 
 function requireContract() {
@@ -250,7 +260,7 @@ function requireContract() {
     throw new Error("Enter a valid 42-character 0x SentinelOracle address in Contract Status.");
   }
   contractAddress = addr;
-  localStorage.setItem("sentinel_contract_address_v2", contractAddress);
+  localStorage.setItem("sentinel_contract_address_v5", contractAddress);
   return contractAddress;
 }
 
@@ -268,8 +278,10 @@ async function writeContract(functionName, args = [], valueWei = 0n) {
   const address = requireContract();
   if (!connectedAccount) {
     await connectWallet();
+  } else {
+    await ensureStudioNetwork();
   }
-  if (!glClient) rebuildClient();
+  rebuildClient();
 
   logTerminal(
     `Calling ${functionName}(${args.map((a) => JSON.stringify(a)).join(", ")})` +
@@ -322,8 +334,8 @@ async function refreshContractStats() {
 // =========================================================
 // UI CONTROLS & EXPLORER LINKS
 // =========================================================
-connectBtn.addEventListener("click", connectWallet);
-connectInlineBtn.addEventListener("click", connectWallet);
+connectBtn.addEventListener("click", () => connectWallet().catch(() => {}));
+connectInlineBtn.addEventListener("click", () => connectWallet().catch(() => {}));
 document.getElementById("refreshStatsBtn").addEventListener("click", refreshContractStats);
 document.getElementById("refreshTopBtn").addEventListener("click", refreshContractStats);
 
@@ -427,7 +439,6 @@ document.getElementById("establishBtn").addEventListener("click", async () => {
     const valueWei = parseGenToWei(genVal);
 
     await writeContract("establish_mission", [mission_id, description, outcomes_json, agents_json], valueWei);
-    syncMissionIdInputs(mission_id);
     await refreshContractStats();
   } catch (err) {
     logTerminal(`establish_mission error: ${err.message}`, "err");
@@ -443,7 +454,6 @@ document.getElementById("fundMissionBtn").addEventListener("click", async () => 
     const genVal = document.getElementById("topupGen").value;
     const valueWei = parseGenToWei(genVal);
     await writeContract("fund_mission", [mission_id], valueWei);
-    syncMissionIdInputs(mission_id);
     await refreshContractStats();
   } catch (err) {
     logTerminal(`fund_mission error: ${err.message}`, "err");
@@ -455,7 +465,6 @@ document.getElementById("joinMissionBtn").addEventListener("click", async () => 
   try {
     const mission_id = document.getElementById("actMissionId").value.trim();
     await writeContract("join_mission", [mission_id]);
-    syncMissionIdInputs(mission_id);
   } catch (err) {
     logTerminal(`join_mission error: ${err.message}`, "err");
   }
@@ -468,7 +477,6 @@ document.getElementById("provideEvidenceBtn").addEventListener("click", async ()
     const source_link = document.getElementById("evUrl").value.trim();
     const content_hash = document.getElementById("evHash").value.trim();
     await writeContract("provide_evidence", [mission_id, source_link, content_hash]);
-    syncMissionIdInputs(mission_id);
   } catch (err) {
     logTerminal(`provide_evidence error: ${err.message}`, "err");
   }
@@ -480,7 +488,6 @@ document.getElementById("evictAgentBtn").addEventListener("click", async () => {
     const mission_id = document.getElementById("actMissionId").value.trim();
     const target_agent = document.getElementById("evictAgentAddr").value.trim();
     await writeContract("evict_unresponsive_agent", [mission_id, target_agent]);
-    syncMissionIdInputs(mission_id);
   } catch (err) {
     logTerminal(`evict_unresponsive_agent error: ${err.message}`, "err");
   }
@@ -491,7 +498,6 @@ document.getElementById("executeConsensusBtn").addEventListener("click", async (
   try {
     const mission_id = document.getElementById("finMissionId").value.trim();
     await writeContract("execute_consensus", [mission_id]);
-    syncMissionIdInputs(mission_id);
   } catch (err) {
     logTerminal(`execute_consensus error: ${err.message}`, "err");
   }
@@ -502,7 +508,6 @@ document.getElementById("claimRewardBtn").addEventListener("click", async () => 
   try {
     const mission_id = document.getElementById("finMissionId").value.trim();
     await writeContract("claim_reward", [mission_id]);
-    syncMissionIdInputs(mission_id);
     await refreshContractStats();
   } catch (err) {
     logTerminal(`claim_reward error: ${err.message}`, "err");
@@ -514,7 +519,6 @@ document.getElementById("refundMissionBtn").addEventListener("click", async () =
   try {
     const mission_id = document.getElementById("finMissionId").value.trim();
     await writeContract("refund_mission", [mission_id]);
-    syncMissionIdInputs(mission_id);
     await refreshContractStats();
   } catch (err) {
     logTerminal(`refund_mission error: ${err.message}`, "err");
@@ -542,7 +546,6 @@ document.getElementById("fetchMissionBtn").addEventListener("click", async () =>
     const res = await readContract("fetch_mission", [mission_id]);
     const parsed = typeof res === "string" ? JSON.parse(res) : res;
     inspectorOutput.textContent = JSON.stringify(parsed, null, 2);
-    syncMissionIdInputs(mission_id);
     if (parsed && !parsed.error) {
       upsertLiveMissionRow(parsed);
     }
@@ -561,7 +564,6 @@ document.getElementById("fetchResolutionBtn").addEventListener("click", async ()
     const res = await readContract("fetch_resolution", [mission_id, cycle]);
     const parsed = typeof res === "string" ? JSON.parse(res) : res;
     inspectorOutput.textContent = JSON.stringify(parsed, null, 2);
-    syncMissionIdInputs(mission_id);
     logTerminal(`fetch_resolution("${mission_id}", ${cycle}) succeeded.`, "ok");
   } catch (err) {
     inspectorOutput.textContent = `Error: ${err.message}`;
@@ -628,4 +630,7 @@ rebuildClient();
 if (contractAddress) {
   refreshContractStats();
 }
-logTerminal(`SentinelOracle Dashboard initialized with contract ${shortAddr(contractAddress)}.`, "info");
+logTerminal(
+  `SentinelOracle Dashboard initialized with contract ${shortAddr(contractAddress)} (Chain ${STUDIO_CHAIN_ID_DEC}).`,
+  "info"
+);
