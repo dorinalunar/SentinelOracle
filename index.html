@@ -87,9 +87,6 @@
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
     }
 
-    /* ===================================================== */
-    /* TOP-LEFT PANEL: HERO & 4 PILLARS                      */
-    /* ===================================================== */
     .hero-panel {
       background:
         radial-gradient(circle at 74% 42%, rgba(99, 102, 241, 0.28) 0%, rgba(30, 58, 138, 0.15) 35%, rgba(11, 16, 30, 0.98) 70%),
@@ -343,9 +340,6 @@
       line-height: 1.35;
     }
 
-    /* ===================================================== */
-    /* TOP-RIGHT PANEL: REAL CONTRACT SPECS & HOW IT WORKS   */
-    /* ===================================================== */
     .stats-strip {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -486,9 +480,6 @@
       border-radius: 4px;
     }
 
-    /* ===================================================== */
-    /* MIDDLE-LEFT PANEL: ARCHITECTURE OVERVIEW              */
-    /* ===================================================== */
     .panel-header-row {
       display: flex;
       align-items: center;
@@ -659,9 +650,6 @@
       color: var(--muted);
     }
 
-    /* ===================================================== */
-    /* BOTTOM-LEFT PANEL: LIVE ON-CHAIN MISSIONS TABLE       */
-    /* ===================================================== */
     .table-wrap {
       overflow-x: auto;
     }
@@ -734,9 +722,6 @@
       border-color: var(--primary-light);
     }
 
-    /* ===================================================== */
-    /* BOTTOM-RIGHT PANEL: COMMAND CENTER                    */
-    /* ===================================================== */
     .network-pill {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -1065,9 +1050,7 @@
 
   <div class="dashboard-shell">
 
-    <!-- ========================================================= -->
-    <!-- LEFT COLUMN STACK                                         -->
-    <!-- ========================================================= -->
+    <!-- LEFT COLUMN STACK -->
     <div class="col-stack">
 
       <!-- 1. HERO PANEL -->
@@ -1285,9 +1268,7 @@
 
     </div>
 
-    <!-- ========================================================= -->
-    <!-- RIGHT COLUMN STACK                                        -->
-    <!-- ========================================================= -->
+    <!-- RIGHT COLUMN STACK -->
     <div class="col-stack">
 
       <!-- 4. REAL CONTRACT CONSTANTS & HOW IT WORKS PANEL -->
@@ -1433,7 +1414,7 @@
               </div>
             </div>
 
-            <!-- TAB 2: JOIN, SUBMIT EVIDENCE & EVICT (join_mission, provide_evidence, evict_unresponsive_agent) -->
+            <!-- TAB 2: JOIN, SUBMIT EVIDENCE & EVICT -->
             <div id="tab-evidence" class="tab-pane">
               <div class="cmd-box-title">
                 <span>Agent Roster &amp; Evidence</span>
@@ -1517,7 +1498,7 @@
               </button>
             </div>
 
-            <!-- TAB 4: VIEW RESULTS (fetch_mission, fetch_resolution, get_credit, get_escrow_balance, get_owner) -->
+            <!-- TAB 4: VIEW RESULTS -->
             <div id="tab-results" class="tab-pane">
               <div class="cmd-box-title">
                 <span>On-Chain State &amp; Resolution Explorer</span>
@@ -1650,6 +1631,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=7"></script>
+  <script type="module" src="main.js?v=10"></script>
 </body>
 </html>
