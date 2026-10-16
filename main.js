@@ -3,14 +3,15 @@ import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
 // Deployed SentinelOracle address on GenLayer Studio Dev (Chain 61997).
 const DEFAULT_CONTRACT_ADDRESS =
-  localStorage.getItem("sentinel_contract_address") ||
-  "0xCD4E691161169F38DcD95DCBEd7029d5583073D1";
+  localStorage.getItem("sentinel_contract_address_v2") ||
+  "0xA95f422ae4655099E962Fe2196a12155C7D1802d";
 
 const STUDIO_CHAIN_ID_DEC = 61997;
 const STUDIO_CHAIN_ID_HEX = "0xf22d";
 const STUDIO_RPC_URL = "https://studio-dev.genlayer.com/api";
 const EXPLORER_BASE_URL = "https://explorer-studio-dev.genlayer.com/address/";
 const WEI_PER_GEN = 10n ** 18n;
+const MAX_PAYLOAD = 20000;
 
 let connectedAccount = null;
 let contractAddress = DEFAULT_CONTRACT_ADDRESS;
@@ -107,6 +108,7 @@ function upsertLiveMissionRow(missionObj) {
   const roster = missionObj.roster || {};
   const totalAgents = Object.keys(roster).length || 0;
   const activeAgents = Object.values(roster).filter(Boolean).length;
+  const frozenDenom = Number(missionObj.payout_denominator || 0);
   const statusRaw = (missionObj.latest_status || "PENDING").toUpperCase();
   const cycle = missionObj.current_cycle || 1;
 
@@ -118,6 +120,11 @@ function upsertLiveMissionRow(missionObj) {
     badgeClass = "diverged";
   }
 
+  const rosterLabel =
+    frozenDenom > 0
+      ? `${activeAgents}/${totalAgents} (frozen: ${frozenDenom})`
+      : `${activeAgents}/${totalAgents}`;
+
   const existingBtn = liveMissionsBody.querySelector(`button[data-mid="${mId}"]`);
   const tr = existingBtn ? existingBtn.closest("tr") : document.createElement("tr");
 
@@ -125,7 +132,7 @@ function upsertLiveMissionRow(missionObj) {
     <td style="font-family: var(--mono); color: var(--text);">${mId}</td>
     <td>${desc.slice(0, 48)}</td>
     <td style="font-family: var(--mono);">${escrow}</td>
-    <td>${activeAgents}/${totalAgents}</td>
+    <td style="font-family: var(--mono); font-size: 0.76rem;">${rosterLabel}</td>
     <td><span class="status-pill ${badgeClass}">● ${badgeText}</span></td>
     <td>Cycle #${cycle}</td>
     <td><button class="btn-table-view" data-mid="${mId}">View</button></td>
@@ -136,7 +143,6 @@ function upsertLiveMissionRow(missionObj) {
   }
 }
 
-// Handle "View" clicks inside On-Chain Missions table
 liveMissionsBody.addEventListener("click", (e) => {
   const btn = e.target.closest(".btn-table-view");
   if (!btn) return;
@@ -149,7 +155,6 @@ liveMissionsBody.addEventListener("click", (e) => {
   }
 });
 
-// Quick lookup from On-Chain Missions panel header
 document.getElementById("quickLookupBtn").addEventListener("click", () => {
   const mId = document.getElementById("quickLookupInput").value.trim();
   if (!mId) return;
@@ -245,7 +250,7 @@ function requireContract() {
     throw new Error("Enter a valid 42-character 0x SentinelOracle address in Contract Status.");
   }
   contractAddress = addr;
-  localStorage.setItem("sentinel_contract_address", contractAddress);
+  localStorage.setItem("sentinel_contract_address_v2", contractAddress);
   return contractAddress;
 }
 
@@ -358,17 +363,53 @@ document.getElementById("clearLogBtn").addEventListener("click", () => {
   terminalLog.innerHTML = "";
 });
 
-// Auto-Compute SHA-256 content_hash
+// Compute SHA-256 content_hash strictly from page content (never from the URL string)
 document.getElementById("genHashBtn").addEventListener("click", async () => {
-  const urlVal = document.getElementById("evUrl").value.trim() || "https://example.com/status";
-  const encoder = new TextEncoder();
-  const data = encoder.encode(urlVal);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashHex = Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  document.getElementById("evHash").value = hashHex;
-  logTerminal(`Generated SHA-256 content_hash: ${hashHex.slice(0, 18)}...`, "info");
+  try {
+    const evContentEl = document.getElementById("evContent");
+    const urlVal = document.getElementById("evUrl").value.trim();
+    let rawContent = evContentEl ? evContentEl.value : "";
+
+    if (!rawContent || rawContent.trim() === "") {
+      if (!urlVal || !urlVal.startsWith("https://")) {
+        throw new Error(
+          "Paste the evidence page text into 'Evidence Content Snapshot' or enter a valid https:// URL to fetch its content."
+        );
+      }
+      logTerminal(`Fetching live page content from ${urlVal} for SHA-256 fingerprinting...`, "info");
+      const response = await fetch(urlVal, { method: "GET" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} when fetching ${urlVal}`);
+      }
+      rawContent = await response.text();
+      if (evContentEl) {
+        evContentEl.value = rawContent.slice(0, MAX_PAYLOAD);
+      }
+    }
+
+    const boundedContent = String(rawContent).slice(0, MAX_PAYLOAD);
+    if (boundedContent.trim() === "") {
+      throw new Error("Evidence content cannot be empty. URL digests are not permitted.");
+    }
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(boundedContent);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    document.getElementById("evHash").value = hashHex;
+    logTerminal(
+      `Computed SHA-256 content_hash from ${boundedContent.length} chars of evidence content: ${hashHex.slice(0, 18)}...`,
+      "ok"
+    );
+  } catch (err) {
+    logTerminal(
+      `Content hash error: ${err.message}. Paste the rendered text directly into 'Evidence Content Snapshot' to hash it.`,
+      "err"
+    );
+  }
 });
 
 // =========================================================
